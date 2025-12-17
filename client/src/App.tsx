@@ -1,35 +1,58 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// client/src/App.tsx
+import { useAccount, useDisconnect } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { ChatBox } from './components/ChatBox'; // ✅ 引入新组件
 
-function App() {
-  const [count, setCount] = useState(0)
+export function App() {
+  const { address, chain, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { open } = useWeb3Modal();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1>💬 CrossChat</h1>
+        {isConnected ? (
+          <div>
+            <span style={{ background: '#f0f0f0', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>
+              {address?.slice(0, 6)}...{address?.slice(-4)} ({chain?.name})
+            </span>
+            <button
+              onClick={() => disconnect()}
+              style={{
+                marginLeft: '10px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                background: '#ff4d4d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => open()}
+            style={{
+              padding: '6px 12px',
+              background: '#7548FF',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Connect Wallet
+          </button>
+        )}
+      </header>
 
-export default App
+      {/* ✅ 加入聊天组件 */}
+      <ChatBox />
+    </div>
+  );
+}
