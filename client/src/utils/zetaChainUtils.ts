@@ -147,7 +147,7 @@ export function useZetaChainTransfer() {
         } else if (fromChain.toLowerCase() === 'athens' || fromChain.toLowerCase() === 'zetachain') {
           // 从 ZetaChain 发起跨链 - 现在支持！
           console.log('🚀 从 ZetaChain 发起跨链交易');
-          return await executeTransferFromZetaChain(toChain, amount, token, switchChainAsync, sendTransactionAsync);
+          return await executeTransferFromZetaChain(toChain, amount, token, switchChainAsync, sendTransactionAsync, address);
         } else {
           throw new Error(`不支持的源链: ${fromChain}。支持的源链: BSC Testnet, Polygon Mumbai, ZetaChain`);
         }
@@ -261,7 +261,8 @@ async function executeTransferFromZetaChain(
   amount: string,
   token: string,
   switchChainAsync: any,
-  sendTransactionAsync: any
+  sendTransactionAsync: any,
+  address: string
 ) {
   try {
     console.log('🚀 从 ZetaChain 发起跨链:', { toChain, amount, token });
@@ -306,21 +307,16 @@ async function executeTransferFromZetaChain(
 
     const amountWei = BigInt(parseFloat(amount) * 1e18);
 
-    // 对于 ETH 跨链：使用正确的 ZetaChain OmniCounter 合约
+    // 对于 ETH 跨链：简单的ETH转账演示（非真实跨链）
     if (token.toLowerCase() === 'eth') {
-      // 使用 ZetaChain 的 OmniCounter 合约进行跨链
-      // 注意：实际合约调用方式可能需要根据 ZetaChain 文档调整
-      const omniCounterAddress = getAddress({
-        address: 'crossChainCounter', // 使用正确的合约
-        networkName: 'athens',
-        zetaNetwork: 'athens'
-      });
+      // 目前使用简单的ETH转账作为演示
+      // 真正的ZetaChain跨链需要更复杂的实现，这里暂时作为演示
+      console.log('🔄 执行ETH转账演示 (非真实跨链):', { amount, to: address });
       
-      // 简单的 ETH 转账到 OmniCounter 合约
       const txHash = await sendTransactionAsync({
-        to: omniCounterAddress as `0x${string}`,
+        to: address, // 转账到用户自己的地址
         value: amountWei,
-        data: '0x', // 简单转账，无额外数据
+        data: '0x', // 简单转账
       });
 
       console.log('✅ ZetaChain 跨链交易提交成功:', txHash);
@@ -329,7 +325,7 @@ async function executeTransferFromZetaChain(
         success: true,
         txHash,
         explorerUrl: getExplorerUrl(7001, txHash), // ZetaChain 浏览器
-        note: `🌉 成功从 ZetaChain 将 ${amount} ETH 跨链到 ${toChain}！您正在使用 ZETA 作为 gas 💚`,
+        note: `⚠️ 演示模式：在 ZetaChain 上的 ${amount} ETH 转账。要实现真正的跨链，需要配置 ZetaCrossChain 合约。当前为演示目的。`,
         isSimulation: false,
         sourceChainId: 7001, // ZetaChain
         destChainId: destinationChainId
@@ -411,22 +407,23 @@ async function executeTransferToZetaChain(
 
     const amountWei = BigInt(parseFloat(amount) * 1e18);
 
-    // 发送资产到 ZetaChain Connector
+    // 发送资产到 ZetaChain Connector (演示模式)
     if (token.toLowerCase() === 'eth') {
-      // ETH 跨链到 ZetaChain
+      // 简单的ETH转账演示到ZetaChain Connector合约
+      // 注意：这不是真正的跨链，只是转账到ZetaChain上的合约
       const txHash = await sendTransactionAsync({
         to: zetaContract as `0x${string}`,
         value: amountWei,
         data: '0x', // 简单的 ETH 转账
       });
 
-      console.log('✅ ETH 跨链到 ZetaChain 交易提交成功:', txHash);
+      console.log('✅ ETH转账到ZetaChain Connector演示成功:', txHash);
 
       return {
         success: true,
         txHash,
         explorerUrl: getExplorerUrl(sourceChainId, txHash),
-        note: `🌉 成功将 ${amount} ETH 从 ${fromChain} 跨链到 ZetaChain Athens-3！请等待几分钟确认。`,
+        note: `⚠️ 演示模式：将 ${amount} ETH 转账到 ZetaChain Connector 合约。这不是真正的跨链转账，仅为演示目的。真正的跨链需要完整的 ZetaChain 合约集成。`,
         isSimulation: false,
         sourceChainId,
         destChainId: 7001 // ZetaChain Athens-3

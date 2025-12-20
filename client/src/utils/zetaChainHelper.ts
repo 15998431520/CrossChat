@@ -7,71 +7,71 @@ const ZETACHAIN_EXPLORER_API = 'https://zetachain-athens-3.blockscout.com/api';
 export async function checkZetaChainTransaction(txHash: string) {
   console.log('🔍 检查 ZetaChain 交易:', txHash);
   
-  // 方法1: 尝试第三方 API（如果 ZetaChain 支持）
-  try {
-    const response = await fetch(
-      `https://api.zetachain.io/evm/athens3/tx/${txHash}`,
-      {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-        }
-      }
-    );
+  // // 方法1: 尝试第三方 API（如果 ZetaChain 支持）
+  // try {
+  //   const response = await fetch(
+  //     `https://api.zetachain.io/evm/athens3/tx/${txHash}`,
+  //     {
+  //       method: 'GET',
+  //       mode: 'cors',
+  //       headers: {
+  //         'Accept': 'application/json',
+  //       }
+  //     }
+  //   );
     
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📊 ZetaChain API 响应:', data);
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     console.log('📊 ZetaChain API 响应:', data);
       
-      if (data && data.blockHash) {
-        return {
-          success: true,
-          status: 'success',
-          blockNumber: data.blockNumber || 0,
-          gasUsed: parseInt(data.gasUsed || '0'),
-          transactionIndex: data.transactionIndex || 0,
-          explorerUrl: `https://zetachain-athens-3.blockscout.com/tx/${txHash}`,
-          note: '交易已确认'
-        };
-      }
-    }
-  } catch (error) {
-    console.log('📝 方法1失败，尝试方法2:', error instanceof Error ? error.message : error);
-  }
+  //     if (data && data.blockHash) {
+  //       return {
+  //         success: true,
+  //         status: 'success',
+  //         blockNumber: data.blockNumber || 0,
+  //         gasUsed: parseInt(data.gasUsed || '0'),
+  //         transactionIndex: data.transactionIndex || 0,
+  //         explorerUrl: `https://zetachain-athens-3.blockscout.com/tx/${txHash}`,
+  //         note: '交易已确认'
+  //       };
+  //     }
+  //   }
+  // } catch (error) {
+  //   console.log('📝 方法1失败，尝试方法2:', error instanceof Error ? error.message : error);
+  // }
 
-  // 方法2: 尝试 Blockscout API（标准格式）
-  try {
-    const response = await fetch(
-      `${ZETACHAIN_EXPLORER_API}/v2/transactions/${txHash}`,
-      {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-        }
-      }
-    );
+  // // 方法2: 尝试 Blockscout API（标准格式）
+  // try {
+  //   const response = await fetch(
+  //     `${ZETACHAIN_EXPLORER_API}/v2/transactions/${txHash}`,
+  //     {
+  //       method: 'GET',
+  //       mode: 'cors',
+  //       headers: {
+  //         'Accept': 'application/json',
+  //       }
+  //     }
+  //   );
     
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📊 Blockscout v2 API 响应:', data);
+  //   if (response.ok) {
+  //     const data = await response.json();
+  //     console.log('📊 Blockscout v2 API 响应:', data);
       
-      if (data && data.hash) {
-        return {
-          success: true,
-          status: 'success',
-          blockNumber: data.block || 0,
-          gasUsed: parseInt(data.gas_used || '0'),
-          confirmations: data.confirmations || 0,
-          explorerUrl: `https://zetachain-athens-3.blockscout.com/tx/${txHash}`,
-          note: '交易已确认'
-        };
-      }
-    }
-  } catch (error) {
-    console.log('📝 方法2失败，尝试方法3:', error instanceof Error ? error.message : error);
-  }
+  //     if (data && data.hash) {
+  //       return {
+  //         success: true,
+  //         status: 'success',
+  //         blockNumber: data.block || 0,
+  //         gasUsed: parseInt(data.gas_used || '0'),
+  //         confirmations: data.confirmations || 0,
+  //         explorerUrl: `https://zetachain-athens-3.blockscout.com/tx/${txHash}`,
+  //         note: '交易已确认'
+  //       };
+  //     }
+  //   }
+  // } catch (error) {
+  //   console.log('📝 方法2失败，尝试方法3:', error instanceof Error ? error.message : error);
+  // }
 
   // 方法3: 尝试使用代理服务或公共 CORS 代理
   try {
