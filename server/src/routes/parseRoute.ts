@@ -40,6 +40,7 @@ router.post('/parse', async (req, res) => {
     );
 
     const content = response.data.output.choices[0].message.content.trim();
+    console.log('🔍 解析结果:', content)
     let parsed;
     try {
       // 尝试提取 JSON（Qwen 有时会加 ```json ... ```）

@@ -4,6 +4,7 @@ import { useAccount } from 'wagmi';
 import { useZetaChainTransfer, useWaitForTransaction } from '../utils/zetaChainUtils';
 import { createTransactionMonitor } from '../utils/zetaChainHelper';
 import { MessageParser, type ParsedTransferAction } from '../utils/MessageParser';
+import { ApiService, type ParsedTransferAction as ApiParsedTransferAction } from '../services/apiService';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ExecuteButton } from './ExecuteButton';
@@ -19,7 +20,7 @@ export function ChatBox() {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string; data?: any }[]>([
     {
       role: 'ai',
-      content: '🏆 欢迎参加 ZetaChain 黑客松！\n\n我是 CrossChat 跨链转账助手，专为 ZetaChain Athens-3 测试网优化。\n\n🎯 💚 最佳使用示例（使用 ZETA 作为 gas）：\n• "转 0.001 ETH 从 ZetaChain 到 BSC Testnet" ⭐ 推荐\n• "转 0.001 ETH 从 ZetaChain 到 Polygon Mumbai"\n• "转 0.001 ETH 从 ZetaChain 到 BSC"\n\n💰 您的优势：\n• 只需要 ZETA 测试币作为 gas 💚\n• 无需其他网络的测试币\n• 展示 ZetaChain 的跨链能力\n\n⚙️ 网络配置：\n• RPC: ZetaChain Athens-3 (BlockPi)\n• 链ID: 7001\n• 浏览器: BlockScout\n\n🚀 让我们展示从 ZetaChain 发起的跨链能力！',
+      content: '🏆 欢迎参加 ZetaChain 黑客松！\n\n我是 CrossChat 跨链转账助手，专为 ZetaChain Athens-3 测试网优化。\n\n🎯 最佳使用示例（使用 ZETA 作为 gas）：\n• "转 0.001 ETH 从 ZetaChain Testnet 到 BSC Testnet" \n• "转 0.001 ETH 从 ZetaChain 到 Polygon Mumbai" \n\n 🚀 让我们展示从 ZetaChain 发起的跨链能力！',
     },
   ]);
   const [pendingAction, setPendingAction] = useState<ParsedTransferAction | null>(null);
@@ -86,37 +87,135 @@ export function ChatBox() {
     setPendingAction(null);
 
     try {
-      const parsedData = MessageParser.parseTransferMessage(userMessage);
+      // 添加解析中状态
+      const parsingMsg = (
+        <div style={{ padding: '12px', background: '#e7f3ff', borderRadius: '12px', borderLeft: '4px solid #2196F3' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: '16px', height: '16px', border: '2px solid #2196F3', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <span style={{ marginLeft: '6px', fontWeight: 'bold' }}>
+              🤖 AI 正在解析您的指令...
+            </span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#1976D2', marginTop: '4px' }}>
+            正在调用千问API进行智能解析
+          </div>
+        </div>
+      );
+      
+      setMessages(prev => [...prev, { role: 'ai', content: '', data: parsingMsg }]);
+
+      // 使用AI解析
+      const parsedData: ApiParsedTransferAction = await ApiService.parseMessage(userMessage);
+
+      // 移除解析中消息
+      setMessages(prev => prev.slice(0, -1));
 
       if (parsedData && parsedData.action === 'transfer') {
+        // 统一数据结构，确保字段名一致
+        const normalizedData: ParsedTransferAction = {
+          action: parsedData.action,
+          amount: parsedData.amount,
+          token: parsedData.token,
+          from: parsedData.fromChain,
+          to: parsedData.toChain,
+          hasUnsupportedNetwork: parsedData.hasUnsupportedNetwork
+        };
+
         if (parsedData.hasUnsupportedNetwork) {
-          const parseMsg = createUnsupportedNetworkMessage(parsedData);
+          const parseMsg = createUnsupportedNetworkMessage(normalizedData);
           setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
           return;
         }
 
-        const isSameChain = parsedData.from.toLowerCase() === parsedData.to.toLowerCase();
+        const isSameChain = normalizedData.from.toLowerCase() === normalizedData.to.toLowerCase();
         
         let parseMsg;
         if (isSameChain) {
-          parseMsg = createSameChainWarningMessage(parsedData);
+          parseMsg = createSameChainWarningMessage(normalizedData);
         } else {
-          parseMsg = createCrossChainMessage(parsedData);
+          parseMsg = createCrossChainMessage(normalizedData);
         }
 
         setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
-        setPendingAction(parsedData);
+        if (normalizedData) {
+          setPendingAction(normalizedData);
+        }
       } else {
         setMessages(prev => [
           ...prev,
-          { role: 'ai', content: '❌ 无法解析指令，请使用格式：转 [数量] [代币] 从 [源链] 到 [目标链]' },
+          { role: 'ai', content: '❌ AI无法理解您的指令，请尝试："转 0.01 ETH 从 Ethereum 到 BSC"' },
         ]);
       }
-    } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'ai', content: '❌ 解析失败，请检查指令格式' },
-      ]);
+    } catch (error: any) {
+      // 移除解析中消息
+      setMessages(prev => prev.slice(0, -1));
+      
+      // 如果AI解析失败，fallback到本地解析
+      console.log('AI解析失败，使用本地解析作为fallback:', error.message);
+      
+      try {
+        const parsedData = MessageParser.parseTransferMessage(userMessage);
+
+        if (parsedData && parsedData.action === 'transfer') {
+          // 统一数据结构
+          const normalizedData: ParsedTransferAction = {
+            action: parsedData.action,
+            amount: parsedData.amount,
+            token: parsedData.token,
+            from: parsedData.from,
+            to: parsedData.to,
+            hasUnsupportedNetwork: parsedData.hasUnsupportedNetwork
+          };
+
+          const fallbackMsg = (
+            <div style={{ padding: '12px', background: '#fff3cd', borderRadius: '12px', borderLeft: '4px solid #ffc107' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffc107">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <span style={{ marginLeft: '6px', fontWeight: 'bold' }}>
+                  🤖 AI解析失败，使用本地解析
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#856404' }}>
+                {error.message}
+              </div>
+            </div>
+          );
+          
+          setMessages(prev => [...prev, { role: 'ai', content: '', data: fallbackMsg }]);
+
+          if (parsedData.hasUnsupportedNetwork) {
+            const parseMsg = createUnsupportedNetworkMessage(normalizedData);
+            setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
+            return;
+          }
+
+          const isSameChain = normalizedData.from.toLowerCase() === normalizedData.to.toLowerCase();
+          
+          let parseMsg;
+          if (isSameChain) {
+            parseMsg = createSameChainWarningMessage(normalizedData);
+          } else {
+            parseMsg = createCrossChainMessage(normalizedData);
+          }
+
+          setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
+          if (normalizedData) {
+            setPendingAction(normalizedData);
+          }
+        } else {
+          setMessages(prev => [
+            ...prev,
+            { role: 'ai', content: '❌ 无法解析指令，请使用格式：转 [数量] [代币] 从 [源链] 到 [目标链]' },
+          ]);
+        }
+      } catch (localError) {
+        setMessages(prev => [
+          ...prev,
+          { role: 'ai', content: '❌ 解析失败，请检查指令格式' },
+        ]);
+      }
     }
   };
 
@@ -517,6 +616,10 @@ export function ChatBox() {
           transform: translateX(0);
           opacity: 1;
         }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
     `;
     document.head.appendChild(style);

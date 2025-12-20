@@ -35,6 +35,7 @@ const CHAIN_IDS: Record<string, number> = {
   sepolia: 11155111,      // Sepolia 测试网 (ZetaChain 不支持)
   athens: 7001,           // ZetaChain Athens 测试网
   zetachain: 7001,        // ZetaChain Athens 测试网 (别名)
+  zetachaintestnet: 7001, // ZetaChain Testnet (别名，保持一致性)
   // 保留原有的驼峰命名键以确保向后兼容
   bscTestnet: 97,
   polygonMumbai: 80001,
@@ -144,7 +145,7 @@ export function useZetaChainTransfer() {
             networkName: 'polygon-mumbai',
             zetaNetwork: 'athens'
           });
-        } else if (fromChain.toLowerCase() === 'athens' || fromChain.toLowerCase() === 'zetachain') {
+        } else if (fromChain.toLowerCase() === 'athens' || fromChain.toLowerCase() === 'zetachain' || fromChain.toLowerCase() === 'zetachaintestnet') {
           // 从 ZetaChain 发起跨链 - 现在支持！
           console.log('🚀 从 ZetaChain 发起跨链交易');
           return await executeTransferFromZetaChain(toChain, amount, token, switchChainAsync, sendTransactionAsync, address);
@@ -280,6 +281,8 @@ async function executeTransferFromZetaChain(
       destinationChainId = 137; // Polygon 主网
     } else if (toChain.toLowerCase() === 'polygonmumbai') {
       destinationChainId = 80001; // Polygon 测试网
+    } else if (toChain.toLowerCase() === 'zetachaintestnet' || toChain.toLowerCase() === 'athens' || toChain.toLowerCase() === 'zetachain') {
+      destinationChainId = 7001; // ZetaChain Testnet
     } else if (toChain.toLowerCase() === 'ethereum') {
       destinationChainId = 1; // 以太坊主网
     } else {

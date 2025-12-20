@@ -6,7 +6,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ input, onInputChange, onSend, isConnected }: ChatInputProps) {
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onSend();
     }
@@ -17,7 +17,7 @@ export function ChatInput({ input, onInputChange, onSend, isConnected }: ChatInp
       <input
         value={input}
         onChange={e => onInputChange(e.target.value)}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyDown}
         placeholder={
           isConnected
             ? '输入跨链指令（如：转 0.01 ETH 从 Ethereum 到 BSC）'
