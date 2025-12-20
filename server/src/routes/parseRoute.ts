@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 // server/src/routes/parseRoute.ts
-console.log('DASHSCOPE_API_KEY:', process.env.DASHSCOPE_API_KEY); // 👈 临时加这行
 const router = Router();
 
 router.post('/parse', async (req, res) => {

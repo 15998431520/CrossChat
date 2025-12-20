@@ -6,14 +6,14 @@ const router = Router();
 router.post('/execute', (req, res) => {
   const { action, token, amount, fromChain, toChain } = req.body;
 
-  // TODO: 这里未来可以集成 ZetaChain SDK
-  console.log('🚀 执行跨链交易:', { action, token, amount, fromChain, toChain });
+  console.log('🚀 后端收到跨链交易请求:', { action, token, amount, fromChain, toChain });
+  console.log('📍 注意：当前版本已改为前端直接调用 ZetaChain 合约');
 
-  // 返回 mock 交易哈希
+  // 返回提示信息，说明现在由前端直接处理
   res.json({
-    success: true,
-    message: '跨链交易已提交',
-    txHash: '0x' + Math.random().toString(36).substring(2, 18),
+    success: false,
+    message: '请使用前端直接执行跨链交易',
+    note: '当前版本已升级为前端直接调用 ZetaChain 合约，无需通过后端',
     details: { action, token, amount, fromChain, toChain }
   });
 });
