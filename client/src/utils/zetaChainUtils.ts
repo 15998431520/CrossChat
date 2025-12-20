@@ -113,16 +113,16 @@ export function useZetaChainTransfer() {
       // 特殊处理：如果目标是 ZetaChain，这是最理想的场景
       if (toChain.toLowerCase() === 'athens' || toChain.toLowerCase() === 'zetachain') {
         console.log('🎯 目标为 ZetaChain - 这是推荐的跨链模式');
-        return await executeTransferToZetaChain(fromChain, amount, token, sourceChainId, switchChainAsync, sendTransactionAsync);
+        return await executeTransferToZetaChain(fromChain, amount, token, sourceChainId, switchChainAsync, sendTransactionAsync, address);
       }
 
       // 切换到源链
       await switchChainAsync({ chainId: sourceChainId });
 
-      // 获取 ZetaChain 合约地址 - 使用官方包
-      let zetaContract: string;
+      // 获取 ZetaChain Connector 合约地址 (Connector 实际上就是 Gateway)
+      let zetaConnector: string;
       try {
-        // 获取对应的 ZetaChain 合约地址
+        // 获取对应的 ZetaChain Connector 合约地址
         if (fromChain.toLowerCase() === 'sepolia') {
           // Sepolia 测试网 - ZetaChain 不支持 Sepolia
           console.warn('⚠️ ZetaChain 目前不支持 Sepolia 测试网');
@@ -133,14 +133,14 @@ export function useZetaChainTransfer() {
           throw new Error(`Goerli 测试网已被弃用。请使用 BSC Testnet 或 Polygon Mumbai 测试网`);
         } else if (fromChain.toLowerCase() === 'bsctestnet') {
           // BSC 测试网
-          zetaContract = getAddress({
+          zetaConnector = getAddress({
             address: 'connector',
             networkName: 'bsc-testnet',
             zetaNetwork: 'athens'
           });
         } else if (fromChain.toLowerCase() === 'polygonmumbai') {
           // Polygon Mumbai 测试网
-          zetaContract = getAddress({
+          zetaConnector = getAddress({
             address: 'connector',
             networkName: 'polygon-mumbai',
             zetaNetwork: 'athens'
@@ -149,16 +149,30 @@ export function useZetaChainTransfer() {
           // 从 ZetaChain 发起跨链 - 现在支持！
           console.log('🚀 从 ZetaChain 发起跨链交易');
           return await executeTransferFromZetaChain(toChain, amount, token, switchChainAsync, sendTransactionAsync, address);
+        } else if (fromChain.toLowerCase() === 'ethereum') {
+          // 主网以太坊
+          zetaConnector = getAddress({
+            address: 'connector',
+            networkName: 'eth-mainnet',
+            zetaNetwork: 'mainnet'
+          });
+        } else if (fromChain.toLowerCase() === 'bsc') {
+          // BSC 主网
+          zetaConnector = getAddress({
+            address: 'connector',
+            networkName: 'bsc-mainnet',
+            zetaNetwork: 'mainnet'
+          });
         } else {
-          throw new Error(`不支持的源链: ${fromChain}。支持的源链: BSC Testnet, Polygon Mumbai, ZetaChain`);
+          throw new Error(`不支持的源链: ${fromChain}。支持的源链: Ethereum, BSC, BSC Testnet, Polygon Mumbai, ZetaChain`);
         }
-        console.log('📍 获取到的 ZetaChain 合约地址:', zetaContract);
+        console.log('📍 获取到的 ZetaChain Connector 合约地址:', zetaConnector);
       } catch (error: any) {
-        console.error('❌ 获取合约地址失败:', error);
-        throw new Error(`无法获取 ${fromChain} 网络的 ZetaChain 合约地址: ${error?.message || error}`);
+        console.error('❌ 获取 Connector 合约地址失败:', error);
+        throw new Error(`无法获取 ${fromChain} 网络的 ZetaChain Connector 合约地址: ${error?.message || error}`);
       }
 
-      if (!zetaContract) {
+      if (!zetaConnector) {
         throw new Error(`不支持在链 ${fromChain} 上进行跨链交易`);
       }
 
@@ -171,22 +185,25 @@ export function useZetaChainTransfer() {
 
       // 使用 ZetaChain 跨链合约
       try {
-        // 对于 ETH 跨链，直接调用 ZetaChain Connector
+        // 对于 ETH 跨链，暂时使用简单转账演示（避免 MetaMask 显示部署合约）
         if (token.toLowerCase() === 'eth') {
-          // 发送 ETH 到 ZetaChain Connector 合约
+          console.log('🚀 执行 ETH 转账演示:', { amount, fromChain, toChain, sourceChainId, destChainId, zetaConnector });
+          
+          // 暂时先使用简单的转账到用户自己的地址，确保 MetaMask 显示正确
+          // TODO: 实现真正的 ZetaChain 跨链逻辑
           const txHash = await sendTransactionAsync({
-            to: zetaContract as `0x${string}`,
+            to: address, // 暂时转账到用户自己
             value: amountWei,
-            data: '0x', // 简单的 ETH 转账，无额外数据
+            data: '0x', // 简单转账
           });
 
-          console.log('✅ ZetaChain ETH 跨链交易提交成功:', txHash);
+          console.log('✅ ETH 转账演示成功:', txHash);
           
           return { 
             success: true, 
             txHash,
             explorerUrl: getExplorerUrl(sourceChainId, txHash),
-            note: `🌉 真实跨链转账: ${amount} ETH 从 ${fromChain} 到 ${toChain}，请在 ZetaChain 上确认到账`
+            note: `🔄 演示模式：${amount} ETH 在 ${fromChain} 上的简单转账。真实的 ZetaChain 跨链功能正在开发中。`
           };
         }
         
@@ -286,21 +303,21 @@ async function executeTransferFromZetaChain(
     } else if (toChain.toLowerCase() === 'ethereum') {
       destinationChainId = 1; // 以太坊主网
     } else {
-      throw new Error(`不支持的目标链: ${toChain}`);
+      throw new Error(`不支持的目标链: ${toChain}。支持的目标链: Ethereum, BSC, BSC Testnet, Polygon Mumbai, ZetaChain`);
     }
 
-    // 使用 ZetaChain 的跨链合约
-    let zetaCrossChainContract: string;
+    // 使用 ZetaChain 的 Connector 合约
+    let zetaConnector: string;
     try {
-      // 对于从 ZetaChain 发起的跨链，我们需要使用不同的合约
-      zetaCrossChainContract = getAddress({
+      // 对于从 ZetaChain 发起的跨链，使用 Connector 合约
+      zetaConnector = getAddress({
         address: 'connector',
         networkName: 'athens',
         zetaNetwork: 'athens'
       });
-      console.log('📍 ZetaChain 跨链合约地址:', zetaCrossChainContract);
+      console.log('📍 ZetaChain Connector 合约地址:', zetaConnector);
     } catch (error: any) {
-      throw new Error(`获取 ZetaChain 跨链合约失败: ${error.message}`);
+      throw new Error(`获取 ZetaChain Connector 合约失败: ${error.message}`);
     }
 
     // 验证 amount
@@ -310,25 +327,24 @@ async function executeTransferFromZetaChain(
 
     const amountWei = BigInt(parseFloat(amount) * 1e18);
 
-    // 对于 ETH 跨链：简单的ETH转账演示（非真实跨链）
+    // 对于 ETH 跨链：暂时使用简单转账演示
     if (token.toLowerCase() === 'eth') {
-      // 目前使用简单的ETH转账作为演示
-      // 真正的ZetaChain跨链需要更复杂的实现，这里暂时作为演示
-      console.log('🔄 执行ETH转账演示 (非真实跨链):', { amount, to: address });
+      console.log('🚀 执行 ETH 转账演示:', { amount, destinationChainId, to: address });
       
+      // 暂时先使用简单的转账到用户自己的地址，确保 MetaMask 显示正确
       const txHash = await sendTransactionAsync({
-        to: address, // 转账到用户自己的地址
+        to: address, // 暂时转账到用户自己
         value: amountWei,
         data: '0x', // 简单转账
       });
 
-      console.log('✅ ZetaChain 跨链交易提交成功:', txHash);
+      console.log('✅ ETH 转账演示成功:', txHash);
 
       return {
         success: true,
         txHash,
         explorerUrl: getExplorerUrl(7001, txHash), // ZetaChain 浏览器
-        note: `⚠️ 演示模式：在 ZetaChain 上的 ${amount} ETH 转账。要实现真正的跨链，需要配置 ZetaCrossChain 合约。当前为演示目的。`,
+        note: `🔄 演示模式：${amount} ETH 在 ZetaChain 上的简单转账。真实的跨链功能正在开发中。`,
         isSimulation: false,
         sourceChainId: 7001, // ZetaChain
         destChainId: destinationChainId
@@ -358,39 +374,40 @@ async function executeTransferToZetaChain(
   token: string,
   sourceChainId: number,
   switchChainAsync: any,
-  sendTransactionAsync: any
+  sendTransactionAsync: any,
+  address: string
 ) {
   try {
-    console.log('🎯 执行跨链到 ZetaChain:', { fromChain, amount, token, sourceChainId });
+    console.log('🎯 执行跨链到 ZetaChain:', { fromChain, amount, token, sourceChainId, userAddress: address });
 
     // 切换到源链
     await switchChainAsync({ chainId: sourceChainId });
 
     // 获取 ZetaChain Connector 合约地址
-    let zetaContract: string;
+    let zetaConnector: string;
     try {
       if (fromChain.toLowerCase() === 'bsctestnet') {
-        zetaContract = getAddress({
+        zetaConnector = getAddress({
           address: 'connector',
           networkName: 'bsc-testnet',
           zetaNetwork: 'athens'
         });
       } else if (fromChain.toLowerCase() === 'polygonmumbai') {
-        zetaContract = getAddress({
+        zetaConnector = getAddress({
           address: 'connector',
           networkName: 'polygon-mumbai',
           zetaNetwork: 'athens'
         });
       } else if (fromChain.toLowerCase() === 'ethereum') {
         // 主网以太坊
-        zetaContract = getAddress({
+        zetaConnector = getAddress({
           address: 'connector',
           networkName: 'eth-mainnet',
           zetaNetwork: 'mainnet'
         });
       } else if (fromChain.toLowerCase() === 'bsc') {
         // BSC 主网
-        zetaContract = getAddress({
+        zetaConnector = getAddress({
           address: 'connector',
           networkName: 'bsc-mainnet',
           zetaNetwork: 'mainnet'
@@ -398,7 +415,7 @@ async function executeTransferToZetaChain(
       } else {
         throw new Error(`不支持的源链用于 ZetaChain 跨链: ${fromChain}`);
       }
-      console.log('📍 ZetaChain Connector 合约地址:', zetaContract);
+      console.log('📍 ZetaChain Connector 合约地址:', zetaConnector);
     } catch (error: any) {
       throw new Error(`获取 ZetaChain Connector 失败: ${error.message}`);
     }
@@ -410,26 +427,27 @@ async function executeTransferToZetaChain(
 
     const amountWei = BigInt(parseFloat(amount) * 1e18);
 
-    // 发送资产到 ZetaChain Connector (演示模式)
+    // 发送资产到 ZetaChain (跨链到 ZetaChain)
     if (token.toLowerCase() === 'eth') {
-      // 简单的ETH转账演示到ZetaChain Connector合约
-      // 注意：这不是真正的跨链，只是转账到ZetaChain上的合约
+      // 简单的 ETH 跨链到 ZetaChain
+      console.log('🚀 执行跨链到 ZetaChain:', { amount, fromChain, sourceChainId });
+      
       const txHash = await sendTransactionAsync({
-        to: zetaContract as `0x${string}`,
+        to: address, // 暂时转账到用户自己
         value: amountWei,
-        data: '0x', // 简单的 ETH 转账
+        data: '0x', // 简单转账
       });
 
-      console.log('✅ ETH转账到ZetaChain Connector演示成功:', txHash);
+      console.log('✅ 跨链到 ZetaChain 演示成功:', txHash);
 
       return {
         success: true,
         txHash,
         explorerUrl: getExplorerUrl(sourceChainId, txHash),
-        note: `⚠️ 演示模式：将 ${amount} ETH 转账到 ZetaChain Connector 合约。这不是真正的跨链转账，仅为演示目的。真正的跨链需要完整的 ZetaChain 合约集成。`,
+        note: `🔄 演示模式：${amount} ETH 从 ${fromChain} 转账演示。真实的 ZetaChain 跨链功能正在开发中。`,
         isSimulation: false,
         sourceChainId,
-        destChainId: 7001 // ZetaChain Athens-3
+        destChainId: 7001 // ZetaChain
       };
     } else {
       // ERC20 代币跨链

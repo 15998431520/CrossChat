@@ -105,7 +105,7 @@ export function ChatBox() {
       setMessages(prev => [...prev, { role: 'ai', content: '', data: parsingMsg }]);
 
       // 使用AI解析
-      const parsedData: ApiParsedTransferAction = await ApiService.parseMessage(userMessage);
+      const parsedData: ApiParsedTransferAction | null = await ApiService.parseMessage(userMessage);
 
       // 移除解析中消息
       setMessages(prev => prev.slice(0, -1));
@@ -116,10 +116,35 @@ export function ChatBox() {
           action: parsedData.action,
           amount: parsedData.amount,
           token: parsedData.token,
-          from: parsedData.fromChain,
-          to: parsedData.toChain,
+          from: parsedData.from || parsedData.fromChain || '',
+          to: parsedData.to || parsedData.toChain || '',
           hasUnsupportedNetwork: parsedData.hasUnsupportedNetwork
         };
+
+        // 验证必填字段
+        if (!normalizedData.from || !normalizedData.to) {
+          const errorMsg = (
+            <div style={{ padding: '12px', background: '#f8d7da', borderRadius: '12px', borderLeft: '4px solid #dc3545' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc3545">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <span style={{ marginLeft: '6px', fontWeight: 'bold' }}>
+                  🤖 AI 解析结果不完整
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#721c24' }}>
+                <strong>解析结果:</strong> {JSON.stringify(parsedData, null, 2)}
+              </div>
+              <div style={{ fontSize: '12px', color: '#721c24', marginTop: '8px' }}>
+                💡 缺少源链或目标链信息，请尝试更明确的指令
+              </div>
+            </div>
+          );
+          
+          setMessages(prev => [...prev, { role: 'ai', content: '', data: errorMsg }]);
+          return;
+        }
 
         if (parsedData.hasUnsupportedNetwork) {
           const parseMsg = createUnsupportedNetworkMessage(normalizedData);
@@ -150,72 +175,29 @@ export function ChatBox() {
       // 移除解析中消息
       setMessages(prev => prev.slice(0, -1));
       
-      // 如果AI解析失败，fallback到本地解析
-      console.log('AI解析失败，使用本地解析作为fallback:', error.message);
+      // AI解析失败，显示错误信息
+      console.error('AI解析失败:', error);
       
-      try {
-        const parsedData = MessageParser.parseTransferMessage(userMessage);
-
-        if (parsedData && parsedData.action === 'transfer') {
-          // 统一数据结构
-          const normalizedData: ParsedTransferAction = {
-            action: parsedData.action,
-            amount: parsedData.amount,
-            token: parsedData.token,
-            from: parsedData.from,
-            to: parsedData.to,
-            hasUnsupportedNetwork: parsedData.hasUnsupportedNetwork
-          };
-
-          const fallbackMsg = (
-            <div style={{ padding: '12px', background: '#fff3cd', borderRadius: '12px', borderLeft: '4px solid #ffc107' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffc107">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
-                <span style={{ marginLeft: '6px', fontWeight: 'bold' }}>
-                  🤖 AI解析失败，使用本地解析
-                </span>
-              </div>
-              <div style={{ fontSize: '12px', color: '#856404' }}>
-                {error.message}
-              </div>
-            </div>
-          );
-          
-          setMessages(prev => [...prev, { role: 'ai', content: '', data: fallbackMsg }]);
-
-          if (parsedData.hasUnsupportedNetwork) {
-            const parseMsg = createUnsupportedNetworkMessage(normalizedData);
-            setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
-            return;
-          }
-
-          const isSameChain = normalizedData.from.toLowerCase() === normalizedData.to.toLowerCase();
-          
-          let parseMsg;
-          if (isSameChain) {
-            parseMsg = createSameChainWarningMessage(normalizedData);
-          } else {
-            parseMsg = createCrossChainMessage(normalizedData);
-          }
-
-          setMessages(prev => [...prev, { role: 'ai', content: '', data: parseMsg }]);
-          if (normalizedData) {
-            setPendingAction(normalizedData);
-          }
-        } else {
-          setMessages(prev => [
-            ...prev,
-            { role: 'ai', content: '❌ 无法解析指令，请使用格式：转 [数量] [代币] 从 [源链] 到 [目标链]' },
-          ]);
-        }
-      } catch (localError) {
-        setMessages(prev => [
-          ...prev,
-          { role: 'ai', content: '❌ 解析失败，请检查指令格式' },
-        ]);
-      }
+      const errorMsg = (
+        <div style={{ padding: '12px', background: '#f8d7da', borderRadius: '12px', borderLeft: '4px solid #dc3545' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#dc3545">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <span style={{ marginLeft: '6px', fontWeight: 'bold' }}>
+              🤖 AI 解析失败
+            </span>
+          </div>
+          <div style={{ marginBottom: '8px', fontSize: '14px', color: '#721c24' }}>
+            <strong>错误信息:</strong> {error.message}
+          </div>
+          <div style={{ fontSize: '12px', color: '#721c24' }}>
+            💡 请检查网络连接，或尝试更清晰的指令格式，例如："转 0.001 ETH 从 ZetaChain Testnet 到 BSC Testnet"
+          </div>
+        </div>
+      );
+      
+      setMessages(prev => [...prev, { role: 'ai', content: '', data: errorMsg }]);
     }
   };
 

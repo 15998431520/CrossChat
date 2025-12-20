@@ -6,11 +6,12 @@ export interface ParsedTransferAction {
   action: 'transfer';
   token: string;
   amount: string;
-  fromChain: string;
-  toChain: string;
-  // 为了兼容现有的代码结构，同时提供from/to字段
-  from?: string;
-  to?: string;
+  // 千问API返回的字段是from和to
+  from: string;
+  to: string;
+  // 为了兼容现有的代码结构，同时提供fromChain/toChain字段
+  fromChain?: string;
+  toChain?: string;
   hasUnsupportedNetwork?: boolean;
 }
 
@@ -29,10 +30,10 @@ export class ApiService {
           action: data.action,
           amount: data.amount,
           token: data.token,
-          fromChain: data.fromChain,
-          toChain: data.toChain,
-          from: data.fromChain, // 兼容字段
-          to: data.toChain,     // 兼容字段
+          from: data.from,       // 千问API返回的字段
+          to: data.to,           // 千问API返回的字段
+          fromChain: data.from,  // 兼容字段
+          toChain: data.to,      // 兼容字段
           hasUnsupportedNetwork: data.hasUnsupportedNetwork
         };
       }

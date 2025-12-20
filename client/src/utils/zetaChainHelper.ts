@@ -1,5 +1,12 @@
 // ZetaChain 交易状态检查工具
 
+// 添加 MetaMask 类型定义
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 // ZetaChain 区块浏览器 API
 const ZETACHAIN_EXPLORER_API = 'https://zetachain-athens-3.blockscout.com/api';
 

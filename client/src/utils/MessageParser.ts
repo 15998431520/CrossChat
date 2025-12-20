@@ -30,6 +30,11 @@ export class MessageParser {
     'zeta': 'zetachain',
     'klaytn baobab': 'klaytnbaobab',
     'klaytnbaobab': 'klaytnbaobab',
+    // 确保所有常见的变体都被支持
+    'zetachaintestnet': 'zetachaintestnet',
+    'zeta chain testnet': 'zetachaintestnet',
+    'zeta chain': 'zetachain',
+    'b s c testnet': 'bsctestnet',
   };
 
   private static unsupportedNetworks = ['sepolia', 'goerli'];
@@ -49,11 +54,31 @@ export class MessageParser {
         return null;
       }
       
-      const fromNetwork = this.networkMapping[match[3].toLowerCase()];
-      const toNetwork = this.networkMapping[match[4].toLowerCase()];
+      console.log('🔍 捕获的网络名称:', { 
+        fromRaw: match[3], 
+        toRaw: match[4],
+        fromNormalized: match[3].toLowerCase().trim(),
+        toNormalized: match[4].toLowerCase().trim()
+      });
+      
+      const fromNetwork = this.networkMapping[match[3].toLowerCase().trim()];
+      const toNetwork = this.networkMapping[match[4].toLowerCase().trim()];
+      
+      console.log('🗺️ 网络映射结果:', { 
+        fromNetwork,
+        toNetwork,
+        fromKey: match[3].toLowerCase().trim(),
+        toKey: match[4].toLowerCase().trim()
+      });
+      
+      if (!match || match.length < 5) {
+        console.log('❌ 匹配失败或格式不正确');
+        return null;
+      }
 
       if (!fromNetwork || !toNetwork) {
         console.log('❌ 不支持的网络名称:', { from: match[3], to: match[4] });
+        console.log('💡 支持的网络名称:', Object.keys(this.networkMapping));
         return null;
       }
 
