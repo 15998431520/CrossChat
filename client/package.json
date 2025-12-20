@@ -12,7 +12,10 @@
   "dependencies": {
     "@web3modal/core": "^5.1.11",
     "@web3modal/wagmi": "^5.1.11",
+    "@zetachain/addresses": "^0.0.13",
+    "@zetachain/toolkit": "^16.3.0",
     "axios": "^1.13.2",
+    "ethers": "^6.16.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "viem": "^2.43.1",
